@@ -14,7 +14,7 @@ import java.sql.Date;
 import java.util.List;
 
 @WebServlet("/listarComidas")
-public class ListarComidasServlet extends HttpServlet {
+public class ListarComidasWebServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
