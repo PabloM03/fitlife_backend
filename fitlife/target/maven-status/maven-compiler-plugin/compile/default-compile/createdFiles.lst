@@ -5,6 +5,7 @@ com/fitlife/servlets/ResetPasswordApiServlet.class
 com/fitlife/servlets/ListarProgresosServlet.class
 com/fitlife/servlets/MisDesafiosServlet.class
 com/fitlife/classes/Usuario.class
+com/fitlife/servlets/AgregarProgresoServletWeb.class
 com/fitlife/servlets/RegistroApiServlet.class
 com/fitlife/api/RegisterResponse.class
 com/fitlife/servlets/VerRutinaActualServlet.class
@@ -42,6 +43,7 @@ com/fitlife/api/LoginResponse.class
 com/fitlife/servlets/ListarComidasServlet.class
 com/fitlife/classes/Participacion.class
 com/fitlife/dao/ProgresoDAO.class
+com/fitlife/api/AgregarProgresoRequest.class
 com/fitlife/classes/Desafio.class
 com/fitlife/servlets/CompletarRutinaServlet$1.class
 com/fitlife/servlets/RecuperarContrasenaServlet$1.class
@@ -55,5 +57,6 @@ com/fitlife/bd/ConexionBD.class
 com/fitlife/utils/SeguridadUtil.class
 com/fitlife/dao/UsuarioDAO.class
 com/fitlife/servlets/ObjetivosDelDiaServlet$1.class
+com/fitlife/api/GenericResponse.class
 com/fitlife/servlets/RegistrarComidaServlet.class
 com/fitlife/classes/RutinaCompletada.class
