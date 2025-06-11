@@ -1,0 +1,15 @@
+# IDE / Workspace  
+/.idea/  
+*.iml  
+/workspace.xml  
+
+# Maven  
+/mavenHomeManager.xml  
+
+# Carpetas de build y compilados  
+/target/  
+**/*.class
+
+# Metadatos de macOS  
+.DS_Store
+
