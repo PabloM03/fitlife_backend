@@ -46,6 +46,7 @@
         </dependency>
     </dependencies>
 
+
     <build>
         <finalName>fitlife</finalName>
         <plugins>
