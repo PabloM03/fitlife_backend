@@ -1,11 +1,11 @@
 package com.fitlife.api;
 
 public class GenericResponse {
-    public boolean exito;
-    public String mensaje;
+    public boolean success;
+    public String message;
 
-    public GenericResponse(boolean exito, String mensaje) {
-        this.exito = exito;
-        this.mensaje = mensaje;
+    public GenericResponse(boolean success, String message) {
+        this.success = success;
+        this.message = message;
     }
 }

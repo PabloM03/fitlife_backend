@@ -1,72 +1,100 @@
+// src/main/java/com/fitlife/servlets/EditarPerfilServlet.java
 package com.fitlife.servlets;
 
+import com.fitlife.api.EditProfileRequest;
+import com.fitlife.api.GenericResponse;
 import com.fitlife.classes.Usuario;
 import com.fitlife.dao.UsuarioDAO;
 import com.fitlife.enums.NivelActividad;
+import com.google.gson.Gson;
+import com.google.gson.JsonSyntaxException;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.*;
+import java.io.BufferedReader;
 import java.io.IOException;
 
-@WebServlet("/editarPerfil")
+@WebServlet("/api/editarPerfil")
 public class EditarPerfilServlet extends HttpServlet {
+    private final Gson gson = new Gson();
 
-    // Mostrar el formulario de edición
     @Override
-    protected void doGet(HttpServletRequest request, HttpServletResponse response)
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
-
-        HttpSession session = request.getSession(false);
-        Usuario usuario = (session != null) ? (Usuario) session.getAttribute("usuario") : null;
-
-        if (usuario == null) {
-            response.sendRedirect("login.jsp");
-            return;
-        }
-
-        // Redirigir al formulario de edición
-        request.getRequestDispatcher("perfil_editar.jsp").forward(request, response);
+        // Redirigimos a /perfil para reutilizar la lógica de GET
+        req.getRequestDispatcher("/perfil").forward(req, resp);
     }
 
-    // Guardar los cambios del perfil
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-
         HttpSession session = request.getSession(false);
-        Usuario usuario = (session != null) ? (Usuario) session.getAttribute("usuario") : null;
+        Usuario usuario = session != null
+                ? (Usuario) session.getAttribute("usuario")
+                : null;
 
+        response.setContentType("application/json");
         if (usuario == null) {
-            response.sendRedirect("login.jsp");
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            GenericResponse err = new GenericResponse(false, "No autorizado");
+            response.getWriter().write(gson.toJson(err));
             return;
         }
 
-        try {
-            usuario.setEdad(Integer.parseInt(request.getParameter("edad")));
-            usuario.setPeso(Double.parseDouble(request.getParameter("peso")));
-            usuario.setAltura(Double.parseDouble(request.getParameter("altura")));
-            String nivelActividadParam = request.getParameter("nivelActividad");
-            if (nivelActividadParam != null && !nivelActividadParam.isEmpty()) {
-                usuario.setNivelActividad(NivelActividad.valueOf(nivelActividadParam));
-            } else {
-                usuario.setNivelActividad(null); 
+        // Leemos el cuerpo JSON
+        StringBuilder sb = new StringBuilder();
+        try (BufferedReader reader = request.getReader()) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                sb.append(line);
             }
+        }
 
-            usuario.setObjetivo(request.getParameter("objetivo"));
+        EditProfileRequest reqDto;
+        try {
+            reqDto = gson.fromJson(sb.toString(), EditProfileRequest.class);
+        } catch (JsonSyntaxException e) {
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            GenericResponse err = new GenericResponse(false, "JSON inválido");
+            response.getWriter().write(gson.toJson(err));
+            return;
+        }
+
+        // Aplicamos sólo los campos no nulos
+        try {
+            if (reqDto.edad != null) {
+                usuario.setEdad(reqDto.edad);
+            }
+            if (reqDto.peso != null) {
+                usuario.setPeso(reqDto.peso);
+            }
+            if (reqDto.altura != null) {
+                usuario.setAltura(reqDto.altura);
+            }
+            if (reqDto.nivelActividad != null && !reqDto.nivelActividad.isEmpty()) {
+                usuario.setNivelActividad(
+                    NivelActividad.valueOf(reqDto.nivelActividad)
+                );
+            }
+            if (reqDto.objetivo != null) {
+                usuario.setObjetivo(reqDto.objetivo);
+            }
 
             boolean actualizado = UsuarioDAO.actualizarUsuario(usuario);
             if (actualizado) {
-                System.out.println("[SUCCESS] Usuario actualizado correctamente en la base de datos.");
+                response.setStatus(HttpServletResponse.SC_OK);
+                GenericResponse ok = new GenericResponse(true, "Perfil actualizado");
+                response.getWriter().write(gson.toJson(ok));
             } else {
-                System.out.println("[WARNING] No se actualizó ninguna fila.");
+                response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                GenericResponse err = new GenericResponse(false, "No se actualizó usuario");
+                response.getWriter().write(gson.toJson(err));
             }
-
         } catch (Exception e) {
-            System.out.println("[ERROR] Fallo al actualizar el perfil:");
-            e.printStackTrace();
+            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            GenericResponse err = new GenericResponse(false, "Error en el servidor");
+            response.getWriter().write(gson.toJson(err));
         }
-
-        response.sendRedirect("perfil");
     }
 }

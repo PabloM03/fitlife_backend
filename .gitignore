@@ -1,0 +1,16 @@
+# IDE / Workspace  
+/.idea/
+*.iml
+/workspace.xml
+
+# Maven  
+/mavenHomeManager.xml
+
+# Carpetas de build y compilados  
+/fitlife/target/
+/target/
+**/*.class
+
+# Metadatos de macOS  
+.DS_Store
+
