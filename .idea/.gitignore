@@ -3,3 +3,9 @@
 /workspace.xml
 # Environment-dependent path to Maven home directory
 /mavenHomeManager.xml
+# Ignorar compilados y carpetas de build
+/target/
+/*.class
+
+# Ignorar metadatos de macOS
+.DS_Store
