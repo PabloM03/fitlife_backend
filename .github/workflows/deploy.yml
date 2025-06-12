@@ -26,6 +26,11 @@ jobs:
         run: |
           cd fitlife
           mvn clean package -DskipTests
+      
+      - name: Debug secret exists
+        run: echo "Secret length: ${#SSH_PRIVATE_KEY}"
+        env:
+        SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
 
       - name: 🔐 Configurar clave SSH
         uses: webfactory/ssh-agent@v0.5.4
