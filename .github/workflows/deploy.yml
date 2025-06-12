@@ -10,50 +10,45 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1) Clonar el repositorio
-      - name: Checkout
-        uses: actions/checkout@v3
+      # 1) Checkout + build
+      - uses: actions/checkout@v3
 
-      # 2) Configurar Java 21
-      - name: Set up JDK 21
-        uses: actions/setup-java@v3
+      - uses: actions/setup-java@v3
         with:
           distribution: temurin
           java-version: '21'
 
-      # 3) Cache de dependencias Maven
-      - name: Cache Maven deps
-        uses: actions/cache@v3
+      - uses: actions/cache@v3
         with:
           path: ~/.m2/repository
           key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: ${{ runner.os }}-maven-
 
-      # 4) Compilar el WAR
       - name: Build WAR
         run: |
           cd fitlife
           mvn -B clean package -DskipTests
 
-      # 5) Desplegar en el servidor remoto
+      # 2) Deploy
       - name: Deploy to remote Tomcat
         env:
-          SSH_KEY:     ${{ secrets.SERVER_SSH_KEY }}
-          SERVER_IP:   ${{ secrets.SERVER_IP }}
-          SERVER_USER: ${{ secrets.SERVER_USER }}
+          SSH_KEY:     ${{ secrets.SERVER_SSH_KEY }}   # tu PEM completo
+          SERVER_IP:   ${{ secrets.SERVER_IP }}        # 13.61.161.23
+          SERVER_USER: ${{ secrets.SERVER_USER }}      # ubuntu
         run: |
-          # Iniciar ssh-agent y cargar la clave privada
+          set -e
+
+          # --- Arranca agent y carga la clave ---
           eval "$(ssh-agent -s)"
           printf '%s\n' "$SSH_KEY" | ssh-add -
 
-          # Añadir servidor a known_hosts para evitar verificación manual
+          # --- Registra la huella del servidor ---
           mkdir -p ~/.ssh
           ssh-keyscan -H "$SERVER_IP" >> ~/.ssh/known_hosts
 
-          # Copiar el WAR al home del usuario remoto
+          # --- Sube el WAR al home ---
           scp fitlife/target/fitlife.war "$SERVER_USER@$SERVER_IP:~/fitlife.war"
 
-          # Mover el WAR a Tomcat y reiniciar el servicio
+          # --- Mueve a Tomcat y reinicia ---
           ssh "$SERVER_USER@$SERVER_IP" << 'EOF'
             sudo mv ~/fitlife.war /opt/tomcat/webapps/ROOT.war
             sudo systemctl restart tomcat
