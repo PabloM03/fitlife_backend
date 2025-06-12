@@ -63,6 +63,6 @@ jobs:
       - name: Deploy WAR into Tomcat and restart
         run: |
           ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
-            sudo mv ~/fitlife.war /opt/tomcat/webapps/ROOT.war
+            sudo mv ~/fitlife.war /opt/tomcat/webapps/
             sudo systemctl restart tomcat
           EOF
