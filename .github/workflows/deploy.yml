@@ -10,15 +10,18 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # 1) Clonar el repo
       - name: Checkout
         uses: actions/checkout@v3
 
+      # 2) Preparar Java 21
       - name: Set up JDK 21
         uses: actions/setup-java@v3
         with:
           distribution: temurin
           java-version: '21'
 
+      # 3) Cache de dependencias Maven
       - name: Cache Maven deps
         uses: actions/cache@v3
         with:
@@ -26,34 +29,40 @@ jobs:
           key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
           restore-keys: ${{ runner.os }}-maven-
 
+      # 4) Compilar el WAR
       - name: Build WAR
         run: |
           cd fitlife
           mvn -B clean package -DskipTests
 
+      # 5) Debug (opcional) para confirmar el secret SSH
       - name: Debug secret exists
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
         run: |
           echo "KEY prefix: ${SSH_PRIVATE_KEY:0:10}..."
 
+      # 6) Iniciar SSH Agent con tu clave privada
       - name: Start SSH agent
         uses: webfactory/ssh-agent@v0.5.4
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
-      - name: Copy WAR to server (to /home/ubuntu)
+      # 7) Añadir el servidor a known_hosts para evitar verificación de host
+      - name: Add server to known_hosts
         run: |
-          scp fitlife/target/fitlife.war ubuntu@${{ secrets.SERVER_IP }}:~/fitlife.war
+          mkdir -p ~/.ssh
+          ssh-keyscan -H ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts
 
+      # 8) Copiar el WAR al home de ubuntu
+      - name: Copy WAR to server
+        run: |
+          scp fitlife/target/fitlife.war ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}:~/fitlife.war
+
+      # 9) Mover el WAR a Tomcat y reiniciar el servicio
       - name: Deploy WAR into Tomcat and restart
         run: |
-          ssh ubuntu@${{ secrets.SERVER_IP }} << 'EOF'
+          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
             sudo mv ~/fitlife.war /opt/tomcat/webapps/ROOT.war
             sudo systemctl restart tomcat
           EOF
-
-
-      - name: Restart Tomcat
-        run: |
-          ssh ubuntu@13.61.161.23 "sudo systemctl restart tomcat"
