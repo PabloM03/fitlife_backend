@@ -1,41 +1,55 @@
-name: 🚀 Deploy automático a servidor remoto
+name: 🚀 Deploy backend en Tomcat
 
 on:
   push:
-    branches:
-      - master
-  pull_request:
-    branches:
-      - master
+    branches: [ master ]
+  workflow_dispatch:
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: 🔄 Clonar repositorio
+      - name: Checkout
         uses: actions/checkout@v3
 
-      - name: ☕ Instalar Java 21
+      - name: Set up JDK 21
         uses: actions/setup-java@v3
         with:
-          distribution: 'temurin'
+          distribution: temurin
           java-version: '21'
 
-      - name: 🛠️ Compilar WAR
+      - name: Cache Maven deps
+        uses: actions/cache@v3
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-maven-
+
+      - name: Build WAR
         run: |
           cd fitlife
-          mvn clean package -DskipTests
+          mvn -B clean package -DskipTests
 
-      - name: 🔐 Configurar clave SSH
+      - name: Debug secret exists
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        run: |
+          echo "KEY prefix: ${SSH_PRIVATE_KEY:0:10}..."
+
+      - name: Start SSH agent
         uses: webfactory/ssh-agent@v0.5.4
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
-      - name: 🚀 Subir WAR al servidor
+      - name: Add server to known hosts
+        run: |
+          ssh-keyscan -H 13.61.161.23 >> ~/.ssh/known_hosts
+
+      - name: Copy WAR to server
         run: |
           scp fitlife/target/*.war ubuntu@13.61.161.23:/opt/tomcat/webapps/ROOT.war
 
-      - name: 🔁 Reiniciar Tomcat en servidor
+      - name: Restart Tomcat
         run: |
           ssh ubuntu@13.61.161.23 "sudo systemctl restart tomcat"
