@@ -10,11 +10,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1) Clonar el repo
+      # 1) Clonar el repositorio
       - name: Checkout
         uses: actions/checkout@v3
 
-      # 2) Set up JDK 21
+      # 2) Configurar Java 21
       - name: Set up JDK 21
         uses: actions/setup-java@v3
         with:
@@ -35,18 +35,18 @@ jobs:
           cd fitlife
           mvn -B clean package -DskipTests
 
-      # 5) Iniciar SSH agent y preparar known_hosts, copiar WAR y desplegar todo en un solo bloque
-      - name: Deploy to Remote Tomcat
+      # 5) Desplegar en el servidor remoto
+      - name: Deploy to remote Tomcat
         env:
-          SSH_PRIVATE_KEY: ${{ secrets.SERVER_SSH_KEY }}   # aquí tu secret real
-          SERVER_IP:      ${{ secrets.SERVER_IP }}
-          SERVER_USER:    ${{ secrets.SERVER_USER }}
+          SSH_KEY:     ${{ secrets.SERVER_SSH_KEY }}
+          SERVER_IP:   ${{ secrets.SERVER_IP }}
+          SERVER_USER: ${{ secrets.SERVER_USER }}
         run: |
-          # Arrancar el agente SSH e importar la clave
+          # Iniciar ssh-agent y cargar la clave privada
           eval "$(ssh-agent -s)"
-          printf "%s\n" "$SSH_PRIVATE_KEY" | ssh-add -
+          printf '%s\n' "$SSH_KEY" | ssh-add -
 
-          # Añadir tu servidor a known_hosts para evitar el 'Host key verification failed'
+          # Añadir servidor a known_hosts para evitar verificación manual
           mkdir -p ~/.ssh
           ssh-keyscan -H "$SERVER_IP" >> ~/.ssh/known_hosts
 
