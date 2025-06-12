@@ -1,0 +1,41 @@
+name: 🚀 Deploy automático a servidor remoto
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 🔄 Clonar repositorio
+        uses: actions/checkout@v3
+
+      - name: ☕ Instalar Java 21
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: 🛠️ Compilar WAR
+        run: |
+          cd fitlife
+          mvn clean package -DskipTests
+
+      - name: 🔐 Configurar clave SSH
+        uses: webfactory/ssh-agent@v0.5.4
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: 🚀 Subir WAR al servidor
+        run: |
+          scp fitlife/target/*.war ubuntu@13.61.161.23:/opt/tomcat/webapps/ROOT.war
+
+      - name: 🔁 Reiniciar Tomcat en servidor
+        run: |
+          ssh ubuntu@13.61.161.23 "sudo systemctl restart tomcat"
