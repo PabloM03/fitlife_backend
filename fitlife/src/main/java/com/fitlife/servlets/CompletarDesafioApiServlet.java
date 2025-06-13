@@ -17,11 +17,10 @@ public class CompletarDesafioApiServlet extends HttpServlet {
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         resp.setContentType("application/json;charset=UTF-8");
+        JsonObject json = new JsonObject();
 
         HttpSession session = req.getSession(false);
         Usuario usuario = session != null ? (Usuario) session.getAttribute("usuario") : null;
-        JsonObject json = new JsonObject();
-
         if (usuario == null) {
             json.addProperty("exito", false);
             json.addProperty("mensaje", "No autenticado");
@@ -29,19 +28,21 @@ public class CompletarDesafioApiServlet extends HttpServlet {
             return;
         }
 
-        int desafioId;
+        int id;
         try {
-            desafioId = Integer.parseInt(req.getParameter("id"));
-        } catch (NumberFormatException e) {
+            id = Integer.parseInt(req.getParameter("id"));
+        } catch (Exception e) {
             json.addProperty("exito", false);
             json.addProperty("mensaje", "ID inválido");
             resp.getWriter().print(json.toString());
             return;
         }
 
-        boolean ok = ParticipacionDAO.marcarCompletado(usuario.getId(), desafioId);
+        boolean ok = ParticipacionDAO.marcarCompletado(usuario.getId(), id);
         json.addProperty("exito", ok);
-        json.addProperty("mensaje", ok ? "Desafío completado" : "No se pudo completar");
+        json.addProperty("mensaje", ok
+            ? "Desafío completado"
+            : "No se pudo completar");
         resp.getWriter().print(json.toString());
     }
 }
