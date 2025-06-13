@@ -14,6 +14,8 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.UUID;
+import java.util.HashMap;
+import java.util.Map;
 
 @WebServlet("/api/comidas")
 @MultipartConfig
@@ -24,20 +26,20 @@ public class PublicarComidaApiServlet extends HttpServlet {
     protected void doPost(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
         resp.setContentType("application/json;charset=UTF-8");
-        GenericResponse response;
 
+        // — Autenticación (igual que antes) —
         HttpSession session = req.getSession(false);
         Usuario usuario = session != null
             ? (Usuario) session.getAttribute("usuario")
             : null;
         if (usuario == null) {
-            writeJson(resp, new GenericResponse(false, "No autorizado"));
+            sendWrapper(resp, false, "No autorizado");
             return;
         }
         int usuarioId = usuario.getId();
 
         try {
-            Part imagenPart = req.getPart("imagen");
+            Part img = req.getPart("imagen");
             String nombre       = req.getParameter("nombre");
             int    calorias     = Integer.parseInt(req.getParameter("calorias"));
             double carbohidratos= Double.parseDouble(req.getParameter("carbohidratos"));
@@ -45,38 +47,38 @@ public class PublicarComidaApiServlet extends HttpServlet {
             double grasas       = Double.parseDouble(req.getParameter("grasas"));
             String descripcion  = req.getParameter("descripcion");
 
-            // Guardar imagen
-            String uuid      = UUID.randomUUID().toString();
-            String ext       = getFileExtension(imagenPart);
-            String fileName  = uuid + ext;
-            File dir         = new File(UPLOAD_DIR);
+            // — guardado de imagen y BD igual que antes —
+            String uuid     = UUID.randomUUID().toString();
+            String ext      = getFileExtension(img);
+            String fileName = uuid + ext;
+            File dir        = new File(UPLOAD_DIR);
             if (!dir.exists()) dir.mkdirs();
-            String path      = UPLOAD_DIR + File.separator + fileName;
-            imagenPart.write(path);
+            img.write(UPLOAD_DIR + File.separator + fileName);
 
-            String fotoPath = "comidas/" + fileName;
-            boolean ok = new ComidaPublicadaDAO()
-                .insertarPublicacion(
-                    usuarioId, nombre, descripcion,
-                    calorias, carbohidratos, proteinas, grasas,
-                    fotoPath
-                );
+            boolean ok = new ComidaPublicadaDAO().insertarPublicacion(
+                usuarioId, nombre, descripcion,
+                calorias, carbohidratos, proteinas, grasas,
+                "comidas/" + fileName
+            );
 
-            response = ok
-                ? new GenericResponse(true, "Publicado correctamente")
-                : new GenericResponse(false, "Error al guardar en la base de datos");
+            sendWrapper(resp,
+                ok,
+                ok ? "Publicado correctamente" : "Error al guardar en la base de datos"
+            );
         } catch (Exception e) {
             e.printStackTrace();
-            response = new GenericResponse(false, "Error interno del servidor");
+            sendWrapper(resp, false, "Error interno del servidor");
         }
-
-        writeJson(resp, response);
     }
 
-    private void writeJson(HttpServletResponse resp, GenericResponse response)
+    private void sendWrapper(HttpServletResponse resp, boolean exito, String mensaje)
             throws IOException {
+        Map<String,Object> wrapper = new HashMap<>();
+        wrapper.put("exito", exito);
+        wrapper.put("mensaje", mensaje);
+        String json = new Gson().toJson(wrapper);
         try (PrintWriter out = resp.getWriter()) {
-            out.print(new Gson().toJson(response));
+            out.print(json);
         }
     }
 
@@ -86,3 +88,4 @@ public class PublicarComidaApiServlet extends HttpServlet {
         return (idx > 0 ? name.substring(idx) : "");
     }
 }
+
