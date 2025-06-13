@@ -1,17 +1,14 @@
 package com.fitlife.servlets;
 
-import com.fitlife.api.GenericResponse;
-import com.fitlife.api.MisDesafioResponse;
-import com.fitlife.classes.Participacion;
 import com.fitlife.classes.Usuario;
 import com.fitlife.dao.ParticipacionDAO;
+import com.fitlife.bd.ConexionBD;
+import com.google.gson.JsonObject;
 import com.google.gson.Gson;
 
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.*;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 
 @WebServlet("/api/completar")
 public class CompletarDesafioApiServlet extends HttpServlet {
@@ -22,16 +19,29 @@ public class CompletarDesafioApiServlet extends HttpServlet {
         resp.setContentType("application/json;charset=UTF-8");
 
         HttpSession session = req.getSession(false);
-        Usuario usuario = (session != null) ? (Usuario) session.getAttribute("usuario") : null;
+        Usuario usuario = session != null ? (Usuario) session.getAttribute("usuario") : null;
+        JsonObject json = new JsonObject();
 
         if (usuario == null) {
-            resp.getWriter().print(gson.toJson(new GenericResponse(false, "No autenticado")));
+            json.addProperty("exito", false);
+            json.addProperty("mensaje", "No autenticado");
+            resp.getWriter().print(json.toString());
             return;
         }
 
-        int id = Integer.parseInt(req.getParameter("id"));
-        ParticipacionDAO.marcarCompletado(usuario.getId(), id);
+        int desafioId;
+        try {
+            desafioId = Integer.parseInt(req.getParameter("id"));
+        } catch (NumberFormatException e) {
+            json.addProperty("exito", false);
+            json.addProperty("mensaje", "ID inválido");
+            resp.getWriter().print(json.toString());
+            return;
+        }
 
-        resp.getWriter().print(gson.toJson(new GenericResponse(true, "Desafío marcado como completado")));
+        boolean ok = ParticipacionDAO.marcarCompletado(usuario.getId(), desafioId);
+        json.addProperty("exito", ok);
+        json.addProperty("mensaje", ok ? "Desafío completado" : "No se pudo completar");
+        resp.getWriter().print(json.toString());
     }
 }
