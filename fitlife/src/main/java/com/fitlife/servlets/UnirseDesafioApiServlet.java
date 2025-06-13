@@ -4,6 +4,7 @@ import com.fitlife.api.GenericResponse;
 import com.fitlife.classes.Usuario;
 import com.fitlife.dao.ParticipacionDAO;
 import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.*;
@@ -41,7 +42,10 @@ public class UnirseDesafioApiServlet extends HttpServlet {
         int desafioId = map.get("desafioId").intValue(); // Gson lo convierte a Double
         ParticipacionDAO.unirse(usuario.getId(), desafioId);
 
-        GenericResponse r = new GenericResponse(true, "¡Te has unido al desafío!");
-        resp.getWriter().print(gson.toJson(r));
+        JsonObject response = new JsonObject();
+        response.addProperty("exito", true);
+        response.addProperty("mensaje", "¡Te has unido al desafío!");
+        resp.getWriter().print(response.toString());
+
     }
 }
