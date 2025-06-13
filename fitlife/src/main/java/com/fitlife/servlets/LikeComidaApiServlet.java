@@ -2,6 +2,7 @@
 package com.fitlife.servlets;
 
 import com.fitlife.api.GenericResponse;
+import com.fitlife.classes.Usuario;
 import com.fitlife.dao.LikeDAO;
 import com.google.gson.Gson;
 
@@ -14,14 +15,18 @@ import java.io.PrintWriter;
 @WebServlet("/api/like")
 public class LikeComidaApiServlet extends HttpServlet {
     @Override
-    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+    protected void doPost(HttpServletRequest req, HttpServletResponse resp)
+            throws ServletException, IOException {
         resp.setContentType("application/json;charset=UTF-8");
         HttpSession session = req.getSession(false);
-        if (session == null || session.getAttribute("usuarioId") == null) {
+        Usuario usuario = session != null
+            ? (Usuario) session.getAttribute("usuario")
+            : null;
+        if (usuario == null) {
             writeJson(resp, new GenericResponse(false, "No autorizado"));
             return;
         }
-        int usuarioId = (Integer) session.getAttribute("usuarioId");
+        int usuarioId = usuario.getId();
         int idPublicacion = Integer.parseInt(req.getParameter("id"));
 
         boolean ok = new LikeDAO().darLike(usuarioId, idPublicacion);
@@ -32,7 +37,8 @@ public class LikeComidaApiServlet extends HttpServlet {
         writeJson(resp, resultado);
     }
 
-    private void writeJson(HttpServletResponse resp, GenericResponse response) throws IOException {
+    private void writeJson(HttpServletResponse resp, GenericResponse response)
+            throws IOException {
         try (PrintWriter out = resp.getWriter()) {
             out.print(new Gson().toJson(response));
         }

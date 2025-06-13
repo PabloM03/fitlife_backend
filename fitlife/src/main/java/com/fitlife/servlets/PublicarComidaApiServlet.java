@@ -2,11 +2,13 @@
 package com.fitlife.servlets;
 
 import com.fitlife.api.GenericResponse;
+import com.fitlife.classes.Usuario;
 import com.fitlife.dao.ComidaPublicadaDAO;
 import com.google.gson.Gson;
 
 import javax.servlet.ServletException;
-import javax.servlet.annotation.*;
+import javax.servlet.annotation.MultipartConfig;
+import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.*;
 import java.io.File;
 import java.io.IOException;
@@ -19,19 +21,23 @@ public class PublicarComidaApiServlet extends HttpServlet {
     private static final String UPLOAD_DIR = "/var/www/fitlife/uploads/comidas";
 
     @Override
-    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+    protected void doPost(HttpServletRequest req, HttpServletResponse resp)
+            throws ServletException, IOException {
         resp.setContentType("application/json;charset=UTF-8");
         GenericResponse response;
+
         HttpSession session = req.getSession(false);
-        if (session == null || session.getAttribute("usuarioId") == null) {
-            response = new GenericResponse(false, "No autorizado");
-            writeJson(resp, response);
+        Usuario usuario = session != null
+            ? (Usuario) session.getAttribute("usuario")
+            : null;
+        if (usuario == null) {
+            writeJson(resp, new GenericResponse(false, "No autorizado"));
             return;
         }
-        int usuarioId = (Integer) session.getAttribute("usuarioId");
+        int usuarioId = usuario.getId();
 
         try {
-            Part img = req.getPart("imagen");
+            Part imagenPart = req.getPart("imagen");
             String nombre       = req.getParameter("nombre");
             int    calorias     = Integer.parseInt(req.getParameter("calorias"));
             double carbohidratos= Double.parseDouble(req.getParameter("carbohidratos"));
@@ -39,20 +45,22 @@ public class PublicarComidaApiServlet extends HttpServlet {
             double grasas       = Double.parseDouble(req.getParameter("grasas"));
             String descripcion  = req.getParameter("descripcion");
 
-            // Guardar en disco
+            // Guardar imagen
             String uuid      = UUID.randomUUID().toString();
-            String ext       = getFileExtension(img);
-            String fileName = uuid + ext;
-            File dir        = new File(UPLOAD_DIR);
+            String ext       = getFileExtension(imagenPart);
+            String fileName  = uuid + ext;
+            File dir         = new File(UPLOAD_DIR);
             if (!dir.exists()) dir.mkdirs();
-            String path = UPLOAD_DIR + File.separator + fileName;
-            img.write(path);
+            String path      = UPLOAD_DIR + File.separator + fileName;
+            imagenPart.write(path);
 
             String fotoPath = "comidas/" + fileName;
             boolean ok = new ComidaPublicadaDAO()
-                .insertarPublicacion(usuarioId, nombre, descripcion,
-                                     calorias, carbohidratos, proteinas, grasas,
-                                     fotoPath);
+                .insertarPublicacion(
+                    usuarioId, nombre, descripcion,
+                    calorias, carbohidratos, proteinas, grasas,
+                    fotoPath
+                );
 
             response = ok
                 ? new GenericResponse(true, "Publicado correctamente")
@@ -65,7 +73,8 @@ public class PublicarComidaApiServlet extends HttpServlet {
         writeJson(resp, response);
     }
 
-    private void writeJson(HttpServletResponse resp, GenericResponse response) throws IOException {
+    private void writeJson(HttpServletResponse resp, GenericResponse response)
+            throws IOException {
         try (PrintWriter out = resp.getWriter()) {
             out.print(new Gson().toJson(response));
         }
