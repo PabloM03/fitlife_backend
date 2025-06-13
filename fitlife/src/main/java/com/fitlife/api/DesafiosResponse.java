@@ -1,16 +1,15 @@
 package com.fitlife.api;
 
-import com.fitlife.classes.Desafio;
 import java.util.List;
 
 public class DesafiosResponse {
     private boolean success;
     private String message;
-    private List<Desafio> data;
+    private List<DesafioResponse> data; 
 
     public DesafiosResponse() {}
 
-    public DesafiosResponse(boolean success, String message, List<Desafio> data) {
+    public DesafiosResponse(boolean success, String message, List<DesafioResponse> data) {
         this.success = success;
         this.message = message;
         this.data = data;
@@ -22,6 +21,6 @@ public class DesafiosResponse {
     public String getMessage() { return message; }
     public void setMessage(String message) { this.message = message; }
 
-    public List<Desafio> getData() { return data; }
-    public void setData(List<Desafio> data) { this.data = data; }
+    public List<DesafioResponse> getData() { return data; }
+    public void setData(List<DesafioResponse> data) { this.data = data; }
 }
