@@ -1,32 +1,11 @@
-<%@ page contentType="text/html;charset=UTF-8" %>
-<html>
-<head>
-    <title>Restablecer Contraseña</title>
-</head>
-<body>
-
 <%
-    String token = request.getParameter("token");
-    if (token == null || token.isEmpty()) {
-%>
-    <p style="color:red;">Token no válido o faltante.</p>
-    <a href="inicio.jsp">Volver al inicio</a>
-<%
-    } else {
+    String token = (String) request.getAttribute("token");
 %>
 
-<h2>🔑 Restablecer Contraseña</h2>
+<h2>Restablecer contraseña</h2>
 
-<form method="post" action="restablecer">
-    <input type="hidden" name="token" value="<%= token %>" />
-    Nueva contraseña: <br/>
-    <input type="password" name="password" required /><br/><br/>
-    <input type="submit" value="Guardar nueva contraseña" />
-</form>
+<p>Por favor, copia el siguiente token y pégalo en la app para continuar:</p>
 
-<%
-    }
-%>
-
-</body>
-</html>
+<p style="font-weight: bold; font-size: 20px; color: darkblue;">
+    <%= token != null ? token : "Token no disponible" %>
+</p>
