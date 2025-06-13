@@ -32,7 +32,12 @@ public class ParticipacionDAO {
 
     public static List<Participacion> listarPorUsuario(int usuarioId) {
         List<Participacion> lista = new ArrayList<>();
-        String sql = "SELECT * FROM PARTICIPACIONES WHERE usuario_id=? ORDER BY fecha_join";
+        String sql = "SELECT p.id AS participacion_id, p.desafio_id, p.fecha_join, p.completado, " +
+             "d.titulo, d.descripcion, d.fecha_inicio, d.fecha_fin " +
+             "FROM PARTICIPACIONES p " +
+             "JOIN DESAFIOS d ON p.desafio_id = d.id " +
+             "WHERE p.usuario_id=? ORDER BY p.fecha_join";
+
         try (Connection c = ConexionBD.getConnection();
              PreparedStatement p = c.prepareStatement(sql)) {
             p.setInt(1, usuarioId);
