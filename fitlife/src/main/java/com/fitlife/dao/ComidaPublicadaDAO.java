@@ -108,4 +108,22 @@ public class ComidaPublicadaDAO {
             return false;
         }
     }
+    /**
+     * Elimina una publicación solo si pertenece al usuario.
+     * @param usuarioId   ID del usuario logueado
+     * @param publicacionId  ID de la publicación a eliminar
+     * @return true si se borró correctamente, false si no existía o error
+     */
+    public boolean eliminarPublicacion(int usuarioId, int publicacionId) {
+        String sql = "DELETE FROM COMIDAS_PUBLICADAS WHERE id = ? AND usuario_id = ?";
+        try (Connection con = ConexionBD.getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setInt(1, publicacionId);
+            ps.setInt(2, usuarioId);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
 }
