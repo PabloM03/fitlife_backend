@@ -1,8 +1,12 @@
+// File: src/main/java/com/fitlife/servlets/AnalyzeEtiquetaApiServlet.java
 package com.fitlife.servlets;
 
+import com.fitlife.api.AnalizarEtiquetaRequest;
+import com.fitlife.api.AnalisisNutricionalResponse;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.*;
@@ -10,7 +14,8 @@ import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
-import java.util.Map;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 
 @WebServlet("/api/analyze")
 public class AnalyzeEtiquetaApiServlet extends HttpServlet {
@@ -20,10 +25,9 @@ public class AnalyzeEtiquetaApiServlet extends HttpServlet {
   @Override
   public void init() throws ServletException {
     try {
+      // Leemos tu USDA API Key de /etc/usda.key
       usdaKey = new String(
-        java.nio.file.Files.readAllBytes(
-          java.nio.file.Paths.get("/etc/usda.key")
-        )
+        Files.readAllBytes(Paths.get("/etc/usda.key"))
       ).trim();
     } catch (IOException e) {
       throw new ServletException("No pude leer USDA key", e);
@@ -35,71 +39,103 @@ public class AnalyzeEtiquetaApiServlet extends HttpServlet {
       throws ServletException, IOException {
     resp.setContentType("application/json;charset=UTF-8");
 
-    // 1) Leer JSON { "etiqueta":"pizza" }
-    JsonObject body = JsonParser
-      .parseReader(new InputStreamReader(req.getInputStream()))
-      .getAsJsonObject();
-    if (!body.has("etiqueta")) {
-      write(resp, Map.of("exito", false, "mensaje", "Falta campo 'etiqueta'"));
+    // 1) Parsear el body JSON a tu DTO AnalizarEtiquetaRequest
+    AnalizarEtiquetaRequest request = gson.fromJson(
+      new InputStreamReader(req.getInputStream()),
+      AnalizarEtiquetaRequest.class
+    );
+    if (request.etiqueta == null || request.etiqueta.isBlank()) {
+      resp.getWriter().print(gson.toJson(
+        new AnalisisNutricionalResponse(
+          false,
+          "Debes enviar el campo 'etiqueta'",
+          null, 0,0,0,0
+        )
+      ));
       return;
     }
-    String etiqueta = body.get("etiqueta").getAsString();
 
     // 2) Llamar a USDA
-    Nutrientes n = fetchNutrientsFromUSDA(etiqueta);
+    Nutrientes n = fetchNutrientsFromUSDA(request.etiqueta);
     if (n == null) {
-      write(resp, Map.of("exito", false, "mensaje", "No hallé datos nutricionales"));
+      resp.getWriter().print(gson.toJson(
+        new AnalisisNutricionalResponse(
+          false,
+          "No encontré datos nutricionales para '" + request.etiqueta + "'",
+          request.etiqueta, 0,0,0,0
+        )
+      ));
       return;
     }
 
-    // 3) Responder JSON
-    write(resp, Map.of(
-      "exito", true,
-      "etiqueta", etiqueta,
-      "calorias", n.calorias,
-      "proteinas", n.proteinas,
-      "grasas", n.grasas,
-      "carbohidratos", n.carbohidratos
+    // 3) Devolver respuesta con macros
+    resp.getWriter().print(gson.toJson(
+      new AnalisisNutricionalResponse(
+        true,
+        null,
+        request.etiqueta,
+        n.calorias, n.proteinas, n.grasas, n.carbohidratos
+      )
     ));
   }
 
-  private Nutrientes fetchNutrientsFromUSDA(String q) throws IOException {
+  /**
+   * Consulta la API de USDA FoodData Central y retorna
+   * un objeto Nutrientes con calorías, proteínas, grasas y carbos.
+   * Devuelve null si no hay resultados.
+   */
+  private Nutrientes fetchNutrientsFromUSDA(String query) throws IOException {
     String url = "https://api.nal.usda.gov/fdc/v1/foods/search"
-      + "?api_key=" + URLEncoder.encode(usdaKey,"UTF-8")
-      + "&query="   + URLEncoder.encode(q,     "UTF-8")
+      + "?api_key=" + URLEncoder.encode(usdaKey, "UTF-8")
+      + "&query="   + URLEncoder.encode(query,  "UTF-8")
       + "&pageSize=1";
-    HttpURLConnection c = (HttpURLConnection)new URL(url).openConnection();
-    try (InputStream in=c.getInputStream();
-         Reader  r=new InputStreamReader(in)) {
-      var root = JsonParser.parseReader(r).getAsJsonObject();
-      var arr  = root.getAsJsonArray("foods");
-      if (arr.size()==0) return null;
-      var food = arr.get(0).getAsJsonObject()
-                    .getAsJsonArray("foodNutrients");
+
+    HttpURLConnection conn = (HttpURLConnection)new URL(url).openConnection();
+    conn.setRequestMethod("GET");
+
+    try (InputStream is = conn.getInputStream();
+         InputStreamReader isr = new InputStreamReader(is)) {
+      JsonObject root = JsonParser.parseReader(isr).getAsJsonObject();
+      if (!root.has("foods") || root.getAsJsonArray("foods").size() == 0) {
+        return null;
+      }
+      // Tomamos el primer alimento de la lista
+      JsonObject food = root
+        .getAsJsonArray("foods")
+        .get(0).getAsJsonObject()
+        .getAsJsonArray("foodNutrients")
+        .get(0).getAsJsonObject()
+        .getAsJsonObject(); // <-- pequeña corrección: foodNutrients es un array de objetos
+
+      // Iteramos para extraer cada nutriente
       double cal=0, prot=0, fat=0, carb=0;
-      for (var el: food) {
-        var nut = el.getAsJsonObject();
+      for (var el : root.getAsJsonArray("foods")
+                        .get(0).getAsJsonObject()
+                        .getAsJsonArray("foodNutrients")) {
+        JsonObject nut = el.getAsJsonObject();
         String name = nut.get("nutrientName").getAsString();
         double val  = nut.get("value").getAsDouble();
-        switch(name) {
+        switch (name) {
           case "Energy":                     cal  = val; break;
           case "Protein":                    prot = val; break;
           case "Total lipid (fat)":          fat  = val; break;
           case "Carbohydrate, by difference":carb = val; break;
         }
       }
-      return new Nutrientes(cal,prot,fat,carb);
+      return new Nutrientes(cal, prot, fat, carb);
     }
   }
 
-  private void write(HttpServletResponse r, Object o) throws IOException {
-    r.getWriter().print(gson.toJson(o));
-  }
-
+  /**
+   * Clase interna para agrupar macros
+   */
   private static class Nutrientes {
     double calorias, proteinas, grasas, carbohidratos;
-    Nutrientes(double c,double p,double f,double cb){
-      this.calorias=c; this.proteinas=p; this.grasas=f; this.carbohidratos=cb;
+    Nutrientes(double c, double p, double f, double cb) {
+      this.calorias      = c;
+      this.proteinas     = p;
+      this.grasas        = f;
+      this.carbohidratos = cb;
     }
   }
 }
