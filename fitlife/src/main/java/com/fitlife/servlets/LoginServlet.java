@@ -54,11 +54,6 @@ public class LoginServlet extends HttpServlet {
         String passwordCliente = loginReq.password;
         String passwordHasheada = SeguridadUtil.hashearPassword(passwordCliente);
 
-        System.out.println("→ Contraseña recibida: " + passwordCliente);
-        System.out.println("→ Contraseña hasheada cliente: " + passwordHasheada);
-        System.out.println("→ Contraseña hasheada BD: " + (usuario != null ? usuario.getPassword() : "usuario no encontrado"));
-
-
         boolean loginCorrecto = usuario != null &&
                 usuario.getPassword().equals(SeguridadUtil.hashearPassword(loginReq.password));
 
@@ -72,8 +67,17 @@ public class LoginServlet extends HttpServlet {
             out.print(gson.toJson(loginRes));
         } else {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            out.print(gson.toJson(new ErrorResponse(false, "Correo o contraseña incorrectos.")));
+
+            // 👇 Añadido solo para debug
+            String debugInfo = gson.toJson(new ErrorResponse(false,
+                    "Correo o contraseña incorrectos. DEBUG:\n" +
+                            "Password enviada (texto): " + loginReq.password + "\n" +
+                            "Password enviada (hash): " + SeguridadUtil.hashearPassword(loginReq.password) + "\n" +
+                            "Password en BD: " + (usuario != null ? usuario.getPassword() : "Usuario no encontrado")));
+
+            out.print(debugInfo);
         }
+
 
         out.flush();
     }
