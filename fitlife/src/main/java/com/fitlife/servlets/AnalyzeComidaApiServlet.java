@@ -29,31 +29,30 @@ public class AnalyzeComidaApiServlet extends HttpServlet {
   private String usdaKey;
   private ImageAnnotatorClient visionClient;
 
-  @Override
-  public void init() throws ServletException {
-    try {
-      // Carga la USDA key
-      usdaKey = new String(
-        Files.readAllBytes(Paths.get("/etc/fitlife/usda.key"))
-      ).trim();
+@Override
+public void init() throws ServletException {
+  try {
+    // Ruta correcta a tu USDA key
+    usdaKey = new String(
+      Files.readAllBytes(Paths.get("/etc/usda.key"))
+    ).trim();
 
-      // Carga credenciales de Vision desde archivo en /etc/vision-key.json
-      GoogleCredentials creds = GoogleCredentials.fromStream(
-        new FileInputStream("/etc/vision-key.json")
-      ).createScoped(List.of("https://www.googleapis.com/auth/cloud-platform"));
+    // Credenciales de Vision desde /etc/vision-credentials.json
+    GoogleCredentials creds = GoogleCredentials.fromStream(
+      new FileInputStream("/etc/vision-credentials.json")
+    ).createScoped(List.of("https://www.googleapis.com/auth/cloud-platform"));
 
-      ImageAnnotatorSettings settings =
-          ImageAnnotatorSettings.newBuilder()
-            .setCredentialsProvider(
-              FixedCredentialsProvider.create(creds)
-            )
-            .build();
+    ImageAnnotatorSettings settings =
+      ImageAnnotatorSettings.newBuilder()
+        .setCredentialsProvider(FixedCredentialsProvider.create(creds))
+        .build();
+    visionClient = ImageAnnotatorClient.create(settings);
 
-      visionClient = ImageAnnotatorClient.create(settings);
-    } catch (IOException e) {
-      throw new ServletException("Error inicializando AnalyzeComidaApiServlet", e);
-    }
+  } catch (IOException e) {
+    throw new ServletException("Error inicializando AnalyzeComidaApiServlet", e);
   }
+}
+
 
   @Override
   public void destroy() {
