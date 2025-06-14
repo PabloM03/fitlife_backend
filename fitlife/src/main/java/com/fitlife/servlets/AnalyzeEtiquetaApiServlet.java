@@ -1,4 +1,4 @@
-// File: src/main/java/com/fitlife/servlets/AnalyzeEtiquetaApiServlet.java
+// File: src/main/java/com/fitlife/servlets/AnalyzeEtiquetaApiServlet.java 
 package com.fitlife.servlets;
 
 import com.fitlife.api.AnalizarEtiquetaRequest;
@@ -84,47 +84,43 @@ public class AnalyzeEtiquetaApiServlet extends HttpServlet {
    * un objeto Nutrientes con calorías, proteínas, grasas y carbos.
    * Devuelve null si no hay resultados.
    */
-  private Nutrientes fetchNutrientsFromUSDA(String query) throws IOException {
-    String url = "https://api.nal.usda.gov/fdc/v1/foods/search"
-      + "?api_key=" + URLEncoder.encode(usdaKey, "UTF-8")
-      + "&query="   + URLEncoder.encode(query,  "UTF-8")
-      + "&pageSize=1";
+private Nutrientes fetchNutrientsFromUSDA(String query) throws IOException {
+  String url = "https://api.nal.usda.gov/fdc/v1/foods/search"
+    + "?api_key=" + URLEncoder.encode(usdaKey, "UTF-8")
+    + "&query="   + URLEncoder.encode(query,  "UTF-8")
+    + "&pageSize=1";
 
-    HttpURLConnection conn = (HttpURLConnection)new URL(url).openConnection();
-    conn.setRequestMethod("GET");
+  HttpURLConnection conn = (HttpURLConnection)new URL(url).openConnection();
+  conn.setRequestMethod("GET");
 
-    try (InputStream is = conn.getInputStream();
-         InputStreamReader isr = new InputStreamReader(is)) {
-      JsonObject root = JsonParser.parseReader(isr).getAsJsonObject();
-      if (!root.has("foods") || root.getAsJsonArray("foods").size() == 0) {
-        return null;
-      }
-      // Tomamos el primer alimento de la lista
-      JsonObject food = root
-        .getAsJsonArray("foods")
-        .get(0).getAsJsonObject()
-        .getAsJsonArray("foodNutrients")
-        .get(0).getAsJsonObject()
-        .getAsJsonObject(); // <-- pequeña corrección: foodNutrients es un array de objetos
+  try (InputStream in = conn.getInputStream();
+       Reader  r  = new InputStreamReader(in)) {
 
-      // Iteramos para extraer cada nutriente
-      double cal=0, prot=0, fat=0, carb=0;
-      for (var el : root.getAsJsonArray("foods")
-                        .get(0).getAsJsonObject()
-                        .getAsJsonArray("foodNutrients")) {
-        JsonObject nut = el.getAsJsonObject();
-        String name = nut.get("nutrientName").getAsString();
-        double val  = nut.get("value").getAsDouble();
-        switch (name) {
-          case "Energy":                     cal  = val; break;
-          case "Protein":                    prot = val; break;
-          case "Total lipid (fat)":          fat  = val; break;
-          case "Carbohydrate, by difference":carb = val; break;
-        }
-      }
-      return new Nutrientes(cal, prot, fat, carb);
+    JsonObject root = JsonParser.parseReader(r).getAsJsonObject();
+    var foods = root.getAsJsonArray("foods");
+    if (foods == null || foods.size() == 0) {
+      return null;
     }
+
+    // Nos quedamos con el primer elemento del array "foods"
+    JsonObject foodObj = foods.get(0).getAsJsonObject();
+    var nutrients = foodObj.getAsJsonArray("foodNutrients");
+    double cal=0, prot=0, fat=0, carb=0;
+
+    for (var el : nutrients) {
+      JsonObject nut = el.getAsJsonObject();
+      String name = nut.get("nutrientName").getAsString();
+      double val  = nut.get("value").getAsDouble();
+      switch (name) {
+        case "Energy"                        -> cal  = val;
+        case "Protein"                       -> prot = val;
+        case "Total lipid (fat)"             -> fat  = val;
+        case "Carbohydrate, by difference"   -> carb = val;
+      }
+    }
+    return new Nutrientes(cal, prot, fat, carb);
   }
+}
 
   /**
    * Clase interna para agrupar macros
