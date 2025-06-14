@@ -51,6 +51,13 @@ public class LoginServlet extends HttpServlet {
 
         // Lógica de login igual a la tuya
         Usuario usuario = UsuarioDAO.buscarPorEmail(loginReq.email);
+        String passwordCliente = loginReq.password;
+        String passwordHasheada = SeguridadUtil.hashearPassword(passwordCliente);
+
+        System.out.println("→ Contraseña recibida: " + passwordCliente);
+        System.out.println("→ Contraseña hasheada cliente: " + passwordHasheada);
+        System.out.println("→ Contraseña hasheada BD: " + (usuario != null ? usuario.getPassword() : "usuario no encontrado"));
+
 
         boolean loginCorrecto = usuario != null &&
                 usuario.getPassword().equals(SeguridadUtil.hashearPassword(loginReq.password));
