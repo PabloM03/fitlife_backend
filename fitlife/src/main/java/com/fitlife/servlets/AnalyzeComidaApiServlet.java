@@ -31,7 +31,7 @@ public class AnalyzeComidaApiServlet extends HttpServlet {
     try {
       usdaKey = new String(
         java.nio.file.Files.readAllBytes(
-          java.nio.file.Paths.get("/etc/fitlife/usda.key")
+          java.nio.file.Paths.get("/etc/usda.key")
         )
       ).trim();
     } catch (IOException e) {
