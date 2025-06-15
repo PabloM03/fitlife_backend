@@ -149,4 +149,23 @@ public class UsuarioDAO {
             return false;
         }
     }
+
+    public static boolean insertar(Usuario usuario) {
+        String sql = "INSERT INTO usuarios (nombre, email, password) VALUES (?, ?, ?)";
+        try (Connection conn = ConexionBD.obtenerConexion();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setString(1, usuario.getNombre());
+            stmt.setString(2, usuario.getEmail());
+            stmt.setString(3, usuario.getPassword()); // ya hasheada
+
+            int rowsInserted = stmt.executeUpdate();
+            return rowsInserted > 0;
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
 }

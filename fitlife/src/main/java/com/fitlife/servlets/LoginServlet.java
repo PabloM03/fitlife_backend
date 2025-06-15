@@ -49,13 +49,13 @@ public class LoginServlet extends HttpServlet {
             return;
         }
 
-        // Buscar usuario y comparar hashes
+        // Lógica de login igual a la tuya
         Usuario usuario = UsuarioDAO.buscarPorEmail(loginReq.email);
         String passwordCliente = loginReq.password;
         String passwordHasheada = SeguridadUtil.hashearPassword(passwordCliente);
 
         boolean loginCorrecto = usuario != null &&
-                usuario.getPassword().equals(passwordHasheada);
+                usuario.getPassword().equals(loginReq.password);
 
         PrintWriter out = response.getWriter();
         if (loginCorrecto) {
@@ -68,15 +68,16 @@ public class LoginServlet extends HttpServlet {
         } else {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
 
-            // Información de depuración
+            // 👇 Añadido solo para debug
             String debugInfo = gson.toJson(new ErrorResponse(false,
                     "Correo o contraseña incorrectos. DEBUG:\n" +
-                            "Password enviada (texto): " + passwordCliente + "\n" +
-                            "Password enviada (hash): " + passwordHasheada + "\n" +
+                            "Password enviada (texto): " + loginReq.password + "\n" +
+                            "Password enviada (hash): " + SeguridadUtil.hashearPassword(loginReq.password) + "\n" +
                             "Password en BD: " + (usuario != null ? usuario.getPassword() : "Usuario no encontrado")));
 
             out.print(debugInfo);
         }
+
 
         out.flush();
     }
