@@ -28,7 +28,7 @@ public class UsuarioDAO {
 
             stmt.setString(1, usuario.getNombre());
             stmt.setString(2, usuario.getEmail());
-            stmt.setString(3, SeguridadUtil.hashearPassword(usuario.getPassword())); // Hash aquí
+            stmt.setString(3, usuario.getPassword()); // ✅ Ya está hasheada en el servlet
             stmt.setInt(4, usuario.getEdad());
             stmt.setDouble(5, usuario.getPeso());
             stmt.setDouble(6, usuario.getAltura());
