@@ -149,4 +149,39 @@ public class UsuarioDAO {
             return false;
         }
     }
+
+    public static boolean eliminarPorEmail(String email) {
+        String sql = "DELETE FROM USUARIOS WHERE email = ?";
+        try (Connection conn = ConexionBD.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setString(1, email);
+            int filas = stmt.executeUpdate();
+            return filas > 0;
+
+        } catch (SQLException e) {
+            System.out.println("[ERROR] Error al eliminar usuario:");
+            e.printStackTrace();
+            return false;
+        }
+
+    }
+
+    public static boolean eliminarPorId(int id) {
+        String sql = "DELETE FROM USUARIOS WHERE id = ?";
+        try (Connection conn = ConexionBD.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, id);
+            int filas = stmt.executeUpdate();
+            System.out.println("[INFO] Usuario eliminado. Filas afectadas: " + filas);
+            return filas > 0;
+
+        } catch (SQLException e) {
+            System.out.println("[ERROR] Error al eliminar usuario por ID:");
+            e.printStackTrace();
+            return false;
+        }
+    }
+
 }
