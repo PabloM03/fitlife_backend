@@ -1,8 +1,8 @@
 package com.fitlife.servlets;
 
 import com.google.gson.Gson;
-import com.fitlife.dao.UsuarioDAO;
 import com.fitlife.api.GenericResponse;
+import com.fitlife.dao.UsuarioDAO;
 
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.*;
@@ -15,7 +15,7 @@ public class EliminarUsuarioServlet extends HttpServlet {
     private final Gson gson = new Gson();
 
     @Override
-    protected void doPost(HttpServletRequest request, HttpServletResponse response)
+    protected void doDelete(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
 
         response.setContentType("application/json");
@@ -29,7 +29,12 @@ public class EliminarUsuarioServlet extends HttpServlet {
         }
 
         // Obtener ID del usuario desde la sesión
-        int userId = (int) session.getAttribute("usuario_id");  // Asegúrate de guardar ese atributo al hacer login
+        Integer userId = (Integer) session.getAttribute("usuario_id");
+        if (userId == null) {
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            response.getWriter().write(gson.toJson(new GenericResponse(false, "No se encontró ID de usuario en sesión")));
+            return;
+        }
 
         boolean eliminado = UsuarioDAO.eliminarPorId(userId);
 
