@@ -2,6 +2,7 @@ package com.fitlife.servlets;
 
 import com.google.gson.Gson;
 import com.fitlife.api.GenericResponse;
+import com.fitlife.classes.Usuario;
 import com.fitlife.dao.UsuarioDAO;
 
 import javax.servlet.annotation.WebServlet;
@@ -28,15 +29,14 @@ public class EliminarUsuarioServlet extends HttpServlet {
             return;
         }
 
-        // Obtener ID del usuario desde la sesión
-        Integer userId = (Integer) session.getAttribute("usuario_id");
-        if (userId == null) {
+        Usuario usuario = (Usuario) session.getAttribute("usuario");
+        if (usuario == null) {
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            response.getWriter().write(gson.toJson(new GenericResponse(false, "No se encontró ID de usuario en sesión")));
+            response.getWriter().write(gson.toJson(new GenericResponse(false, "No se encontró el usuario en sesión")));
             return;
         }
 
-        boolean eliminado = UsuarioDAO.eliminarPorId(userId);
+        boolean eliminado = UsuarioDAO.eliminarPorId(usuario.getId());
 
         if (eliminado) {
             session.invalidate();
